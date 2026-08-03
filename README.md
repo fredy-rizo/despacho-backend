@@ -1,1 +1,1 @@
-Link documentation: https://mintlify.wiki/fredy-rizo/despacho-backend
+Link documentation: https://despacho.mintlify.site/introduction
