@@ -29,7 +29,7 @@ export const create_form_reserve = async (req, res) => {
         .status(403)
         .json({ msj: "Completa todos los campos", status: false });
 
-    const new_form_reserve = new FormReserve({
+    const id = await FormReserve.create({
       full_name,
       email,
       phone,
@@ -37,9 +37,10 @@ export const create_form_reserve = async (req, res) => {
       preferred_date,
       preferred_hour,
       additional_message,
+      reservation_accepted: false,
     });
 
-    const data_response = await new_form_reserve.save();
+    const data_response = await FormReserve.find_by_id(id);
     res.status(200).json({
       msj: "Reserva creada correctamente. Cuando tu reserva sea confirmada te notificaremos",
       status: true,
@@ -59,28 +60,26 @@ export const create_form_reserve = async (req, res) => {
 export const accepted_reservation = async (req, res) => {
   try {
     const { reserveId } = req.params;
-    const { preferred_date, preferred_hour } = req.body;
+    const { preferred_date, preferred_hour, additional_message_response } =
+      req.body;
 
-    let form_reserveX = await FormReserve.findById(reserveId);
+    let form_reserveX = await FormReserve.find_by_id(reserveId);
     if (!form_reserveX)
       return res
         .status(404)
         .json({ msj: "Reserva no encontrada", status: false });
 
-    await FormReserve.updateOne(
-      { _id: reserveId },
-      {
-        $set: {
-          preferred_date,
-          preferred_hour,
-          reservation_accepted: true,
-        },
-      }
-    );
+    await FormReserve.update(reserveId, {
+      ...form_reserveX,
+      preferred_date,
+      preferred_hour,
+      additional_message_response,
+      reservation_accepted: true,
+    });
 
-    const update_reserve = await FormReserve.findById(reserveId);
+    const update_reserve = await FormReserve.find_by_id(reserveId);
     res.status(200).json({
-      msj: "Reserva aceptada/modificada correctamente",
+      msj: "Reserva aceptada/modificada exitosamente",
       status: true,
       update_reserve,
     });
@@ -97,14 +96,8 @@ export const accepted_reservation = async (req, res) => {
 
 export const list_reservation_true = async (req, res) => {
   try {
-    const cant = await FormReserve.find({
-      reservation_accepted: true,
-    }).countDocuments();
-    const data = await FormReserve.find({ reservation_accepted: true })
-      .skip(req.body.skippag)
-      .limit(req.body.limit)
-      .sort({ _id: -1 });
-
+    const cant = await FormReserve.count(true);
+    const data = await FormReserve.find(true, req.body.skippag, req.body.limit);
     res.status(200).json({
       msj: "Cargando reservas aceptadas",
       status: true,
@@ -128,14 +121,12 @@ export const list_reservation_true = async (req, res) => {
 
 export const list_reservation_false = async (req, res) => {
   try {
-    const cant = await FormReserve.find({
-      reservation_accepted: false,
-    }).countDocuments();
-    const data = await FormReserve.find({ reservation_accepted: false })
-      .skip(req.body.skippag)
-      .limit(req.body.limit)
-      .sort({ _id: -1 });
-
+    const cant = await FormReserve.count(false);
+    const data = await FormReserve.find(
+      false,
+      req.body.skippag,
+      req.body.limit,
+    );
     res.status(200).json({
       msj: "Cargando reservas no aceptadas",
       status: true,
@@ -159,11 +150,8 @@ export const list_reservation_false = async (req, res) => {
 
 export const list_reservation_alls = async (req, res) => {
   try {
-    const cant = await FormReserve.find({}).countDocuments();
-    const data = await FormReserve.find({})
-      .skip(req.body.skippag)
-      .limit(req.body.limit)
-      .sort({ _id: -1 });
+    const cant = await FormReserve.count();
+    const data = await FormReserve.find(null, req.body.skippag, req.body.limit);
 
     res.status(200).json({
       msj: "Cargando todas las reservas",
@@ -190,13 +178,13 @@ export const remove_reservation = async (req, res) => {
   try {
     const { reservationId } = req.params;
 
-    const reservationX = await FormReserve.findById(reservationId);
+    const reservationX = await FormReserve.find_by_id(reservationId);
     if (!reservationX)
       return res
         .status(404)
         .json({ msj: "Reserva no encontrada.", status: false });
 
-    await Promise.all([FormReserve.deleteOne({ _id: reservationId })]);
+    await FormReserve.delete(reservationId);
 
     res.status(200).json({
       msj: "Reserva eliminada exitosamente.",

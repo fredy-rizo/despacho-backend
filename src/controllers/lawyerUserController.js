@@ -5,6 +5,7 @@ import {
 } from "../models/LawyerUser.js";
 import config from "../config.js";
 import jwt from "jsonwebtoken";
+import { LawyerRole } from "../models/LawyerRole.js";
 
 /**
  * @param {import('express').Request} req
@@ -21,7 +22,7 @@ export const create_lawyer_user = async (req, res) => {
         status: false,
       });
 
-    let userX = await LawyerUser.findOne({ email: email.toLowerCase() });
+    let userX = await LawyerUser.find_by_email(email.toLowerCase());
     if (userX)
       return res.status(203).json({
         msj: "Este correo ya se encuentra registrado. Por favor intenta con uno diferente",
@@ -29,16 +30,38 @@ export const create_lawyer_user = async (req, res) => {
       });
 
     const pass = await encryptPassword(password);
-    const data_lawyer_user = new LawyerUser({
-      email,
+    const total_user = await LawyerUser.count();
+    const id = await LawyerUser.create({
+      token: "",
+      email: email.toLowerCase(),
       password: pass,
-      role: [{ name: "Admin", value: "1" }],
     });
 
-    const new_user = await data_lawyer_user.save();
+    // if (total_user === 0) {
+    //   await LawyerRole.create({
+    //     user_id: id,
+    //     name: "Admin",
+    //     value: "1",
+    //   });
+    // } else {
+    //   await LawyerRole.create({
+    //     user_id: id,
+    //     name: "User",
+    //     value: "2",
+    //   });
+    // }
+
+    await LawyerRole.create({
+      user_id: id,
+      name: "Admin",
+      value: "1",
+    });
+
+    const new_user = await LawyerUser.find_by_id(id);
+    new_user.role = await LawyerRole.find_by_user(id);
     res
       .status(200)
-      .json({ msj: "Cuenta creada correctamente", status: true, new_user });
+      .json({ msj: "Cuenta creada exitosamente", status: true, new_user });
   } catch (err) {
     console.log(err);
     res.status(500).json(err);
@@ -55,16 +78,16 @@ export const login_lawyer = async (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password)
-      return res
-        .status(203)
-        .json({
-          msj: "Completa todos los campos para iniciar sesion",
-          status: false,
-        });
+      return res.status(203).json({
+        msj: "Completa todos los campos para iniciar sesion",
+        status: false,
+      });
 
-    let userX = await LawyerUser.findOne({ email: email.toLowerCase() });
+    const userX = await LawyerUser.find_by_email(email.toLowerCase());
     if (!userX)
       return res.status(403).json({ msj: "Email no valido", statis: false });
+
+    userX.role = await LawyerRole.find_by_user(userX.id);
 
     const validate_pass = await comparePassword(password, userX.password);
     if (!validate_pass)
@@ -74,22 +97,17 @@ export const login_lawyer = async (req, res) => {
 
     const token = jwt.sign(
       {
-        _id: userX._id,
+        id: userX.id,
         email: userX.email,
         role: userX.role,
       },
       config.SECRET,
       {
         expiresIn: "365d",
-      }
+      },
     );
 
-    const new_user = {
-      _id: userX._id,
-      token,
-    };
-
-    await LawyerUser.updateOne({ _id: userX._id }, new_user);
+    await LawyerUser.update_token(userX.id, token);
     res.status(200).json({
       msj: "Bienvenido!",
       status: true,

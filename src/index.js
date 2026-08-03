@@ -1,12 +1,13 @@
 import app from "./app.js";
 import config from "./config.js";
-import { MongooseDB } from "./database/DB/mongooseDB.js";
+// import { MongooseDB } from "./database/DB/mongooseDB.js";
+import { connectDB } from "./database/MySQL/MySQL.js";
 
 const PORT = config.PORT || 3000;
 
 const start = performance.now();
 app.listen(PORT, () => {
   console.log(`Server-startup → ${(performance.now() - start).toFixed(2)}.ms`);
-  console.log(`Server on port → ${PORT} ✅`);
-  MongooseDB();
+  console.log(`Server on port → ${PORT}`);
+  connectDB();
 });

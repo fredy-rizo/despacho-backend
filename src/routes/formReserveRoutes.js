@@ -15,12 +15,27 @@ router.post("/create", create_form_reserve);
 
 router.post("/accept/:reserveId/reserve", Token, accepted_reservation);
 
-router.post("/list/reservation-true", Token, Paginate, list_reservation_true);
+router.get(
+  "/list/reservation-true/:pag?/:perpage?",
+  Token,
+  Paginate,
+  list_reservation_true,
+);
 
-router.post("/list/reservation-false", Token, Paginate, list_reservation_false);
+router.get(
+  "/list/reservation-false/:pag?/:perpage?",
+  Token,
+  Paginate,
+  list_reservation_false,
+);
 
-router.post("/list/reservation-all", Token, Paginate, list_reservation_alls);
+router.get(
+  "/list/reservation-all/:pag?/:perpage?",
+  Token,
+  Paginate,
+  list_reservation_alls,
+);
 
-router.post("/remove/reservation/:reservationId", Token, remove_reservation);
+router.delete("/remove/reservation/:reservationId", Token, remove_reservation);
 
 export default router;

@@ -20,14 +20,14 @@ export const Token = (req, res, next) => {
         .json({ msj: `${err.message}. Rechazo en la conexion`, status: false });
     }
 
-    let lawyer_userX = await LawyerUser.findById(user._id);
+    const lawyer_userX = await LawyerUser.find_by_id(user.id);
     if (!lawyer_userX)
       return res
         .status(404)
         .json({ msj: "Usuario no encontrado", status: false });
 
     req.user = {
-      _id: lawyer_userX._id,
+      id: lawyer_userX.id,
       email: lawyer_userX.email,
       role: lawyer_userX.role,
     };
